@@ -76,6 +76,9 @@ public class NeuralNetwork {
 			return;
 		}
 		
+		
+		
+		
 		/*
 		this.Layers.add(new Layer(
 				new Matrix(Matrix.NewDoubleMatrix(
