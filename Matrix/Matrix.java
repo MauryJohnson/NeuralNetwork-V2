@@ -141,15 +141,15 @@ public class Matrix implements Serializable {
 				
 				if(Normalized) {
 					
-					System.out.println("Normalizing for Matrix:"+M1.Name);
+					System.out.println("Normalizing for Matrix TRANSPOSED!!!!!:"+M1.Name);
 					
 					Ns = 0.0;
-					for(int l=0; l<M1.GetColumns();l++) {
-						Ns+=M1.Entries.get(i).get(0)[l];
+					for(int l=0; l<M1.GetRows();l++) {
+						Ns+=M1.Entries.get(l).get(0)[j];
 					}
 					
 					if(Ns==0.0) {
-						System.err.println("INF ENTRY at:["+i+","+"j]");
+						System.err.println("INF ENTRY at:["+i+","+j+"]");
 						Ns = 1.0;
 					}
 					
