@@ -157,7 +157,9 @@ public class Layer implements Serializable {
 	"\n GRADIENT WEIGHTS \n"+
 	(GradientWeights!=null? GradientWeights+"":"")+
 	"\n ACTIVATION \n"+
-	(Activation!=null? (this.ActivationFunction==3? Activation.toSoftMax()+GetActivationType():Activation.toString()+GetActivationType()):"")+
+	(Activation!=null? (Activation.toString()+GetActivationType()):"")+
+	"\n BIAS \n" +
+	this.Bias    +
 	" \n ERROR \n"+
 	(Error!=null? Error.toString():"");
 	}

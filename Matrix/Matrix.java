@@ -112,8 +112,9 @@ public class Matrix implements Serializable {
 	 * @return
 	 */
 	public static Matrix Multiply(Matrix M1, Matrix M2,boolean Normalized,String Name) {
+		System.out.println("Multiply\n"+M1+"\n and\n"+M2);
 		if(M1.GetColumns()!=M2.GetRows()) {
-			System.err.println("");
+			System.err.println(" MISMATCH M1 Rows and M2 Columns");
 			return null;
 		}
 
@@ -480,7 +481,9 @@ public class Matrix implements Serializable {
 	public static void DSigmoid(Matrix M) {
 		for(int i=0; i<M.GetRows();i+=1) {
 			for(int l=0; l<M.GetColumns();l+=1) {
-				M.Entries.get(i).get(0)[l]= (Math.exp(-M.Entries.get(i).get(0)[l])) / Math.pow( ( 1 + Math.exp(-M.Entries.get(i).get(0)[l])   ) ,2);
+				//Because rows are already sigmoided... just do this formula
+				//M.Entries.get(i).get(0)[l]= (Math.exp(-M.Entries.get(i).get(0)[l])) / Math.pow( ( 1 + Math.exp(-M.Entries.get(i).get(0)[l])   ) ,2);
+				M.Entries.get(i).get(0)[l] = M.Entries.get(i).get(0)[l]*(1-M.Entries.get(i).get(0)[l]);
 			}
 		}
 	}
@@ -493,6 +496,10 @@ public class Matrix implements Serializable {
 	 * max(0,x)
 	 */
 	public static void Relu(Matrix M) {
+		if(M==null) {
+			System.err.println("Null Matrix");
+			return;
+		}
 		if(M.GetColumns()!=1) {
 			System.err.println("Matrix must be a vector");
 			return;
@@ -597,6 +604,20 @@ public class Matrix implements Serializable {
 	}
 	
 	/**
+	 * Derivative of soft max function, easily SM(1-SM)
+	 * @param M
+	 */
+	public static void DSoftMax(Matrix M) {
+		
+		for(int i=0; i<M.GetRows();i+=1) {
+			for(int l=0; l<M.GetColumns();l+=1) {
+				M.Entries.get(i).get(0)[l] = M.Entries.get(i).get(0)[l]*(1-M.Entries.get(i).get(0)[l]);
+			}
+		}
+		
+	}
+	
+	/**
 	 * For printing out copy matrix for softmax, but not the original!
 	 * @return
 	 */
@@ -642,7 +663,6 @@ public class Matrix implements Serializable {
 				M2.Entries.get(i).get(0)[l] = 
 						Math.exp(M.Entries.get(i).get(0)[l])*sum / 
 						Math.pow(Math.exp(M.Entries.get(i).get(0)[l]) + sum,2); 
-			
 			}
 		}
 		
