@@ -33,7 +33,7 @@ public class Matrix implements Serializable {
 	 * Dynamic entries for a dynamic matrix
 	 * 2D Array
 	 */
-	ArrayList<ArrayList<double[]>> Entries;
+	public ArrayList<ArrayList<double[]>> Entries;
 	
 	/**
 	 * Assign a name to matrix
@@ -111,9 +111,10 @@ public class Matrix implements Serializable {
 	 * @param M2
 	 * @return
 	 */
-	public static Matrix Multiply(Matrix M1, Matrix M2,String Name) {
+	public static Matrix Multiply(Matrix M1, Matrix M2,boolean Normalized,String Name) {
 		if(M1.GetColumns()!=M2.GetRows()) {
 			System.err.println("");
+			return null;
 		}
 
 		double[][] AllSums = new double[M1.GetRows()][M2.GetColumns()];
@@ -136,7 +137,26 @@ public class Matrix implements Serializable {
 							M2.Entries.get(k).get(0)[j];
 				}
 				
-				Sums[j]=sum;
+				double Ns = 1.0;
+				
+				if(Normalized) {
+					
+					System.out.println("Normalizing for Matrix:"+M1.Name);
+					
+					Ns = 0.0;
+					for(int l=0; l<M1.GetColumns();l++) {
+						Ns+=M1.Entries.get(i).get(0)[l];
+					}
+					
+					if(Ns==0.0) {
+						System.err.println("INF ENTRY at:["+i+","+"j]");
+						Ns = 1.0;
+					}
+					
+				}
+				
+				Sums[j]=sum/Ns;
+				
 				sum=0.0;
 			}
 			
@@ -151,12 +171,12 @@ public class Matrix implements Serializable {
 	 * @param M1
 	 * @return
 	 */
-	public void Multiply(Matrix M1,String Name) {
+	public void Multiply(Matrix M1,boolean Normalized,String Name) {
 		if(GetColumns()!=M1.GetRows()) {
 			System.err.println(Name+"'s Columns:"+this.GetColumns()+" is not equal to "+M1.Name+"'s Rows:"+M1.GetRows());
 			return;
 		}
-		Matrix M = Matrix.Multiply(this,M1,Name);
+		Matrix M = Matrix.Multiply(this,M1,Normalized,Name);
 		this.Entries=null;
 		this.Entries=M.Entries;
 	}
@@ -178,13 +198,13 @@ public class Matrix implements Serializable {
 			Matrix InverseMatrix = Matrix.Inverse(this);
 			Power=Power*-1;
 			for(int i=0;i<Power;i+=1)
-			InverseMatrix.Multiply(InverseMatrix, "Multiply Inverse X"+(i+1));
+			InverseMatrix.Multiply(InverseMatrix,false,"Multiply Inverse X"+(i+1));
 			return InverseMatrix;
 		}
 		else
 		{
 			for(int i=0; i<Power;i+=1)
-			this.Multiply(this, "Multiply X"+(i+1));
+			this.Multiply(this,false,"Multiply X"+(i+1));
 			return this;
 		}
 	}
@@ -407,6 +427,7 @@ public class Matrix implements Serializable {
 	/**
 	 * Perform Sigmoid operation on Matrix which is 1 column by n rows
 	 * Used for hidden layer
+	 * Typically used for activation
 	 * @param M
 	 * 1/(1+e^-x)
 	 */
@@ -415,11 +436,59 @@ public class Matrix implements Serializable {
 			System.err.println("Matrix must be a vector");
 			return;
 		}
+		
+		for(int i=0;i<M.GetRows();i+=1) {
+			for(int l=0; l<M.GetColumns();l+=1) {
+			
+				M.Entries.get(i).get(0)[l] = 1/(1+Math.exp(-M.Entries.get(i).get(0)[l]));
+			
+			}
+		}
+		
+	}
+	
+	/**
+	 * Compute Derivative of Sigmoid operation
+	 * e^-x / (1+e^-x)^2
+	 * Typically used for activation
+	 * @param M
+	 * @return
+	 */
+	public static Matrix DerivSigmoid(Matrix M) {
+		
+		Matrix M2 = new Matrix(
+				Matrix.NewDoubleMatrix
+				(new double[M.GetRows()][M.GetColumns()]
+						)
+				,"DerivSigmoid");
+		
+		for(int i=0; i<M.GetRows();i+=1) {
+			for(int l=0; l<M.GetColumns();l+=1) {
+			
+				M2.Entries.get(i).get(0)[l]= (Math.exp(-M.Entries.get(i).get(0)[l])) / Math.pow( ( 1 + Math.exp(-M.Entries.get(i).get(0)[l])   ) ,2);
+			
+			}
+		}
+		
+		return M2;
+	}
+	
+	/**
+	 * Perform Dynamic operation on Matrix for Sigmoid
+	 * @param M
+	 */
+	public static void DSigmoid(Matrix M) {
+		for(int i=0; i<M.GetRows();i+=1) {
+			for(int l=0; l<M.GetColumns();l+=1) {
+				M.Entries.get(i).get(0)[l]= (Math.exp(-M.Entries.get(i).get(0)[l])) / Math.pow( ( 1 + Math.exp(-M.Entries.get(i).get(0)[l])   ) ,2);
+			}
+		}
 	}
 	
 	/**
 	 * Perform Relu operation on Matrix which is 1 column by n rows
 	 * Used for hidden layer
+	 * Typically used for activation
 	 * @param M
 	 * max(0,x)
 	 */
@@ -428,16 +497,71 @@ public class Matrix implements Serializable {
 			System.err.println("Matrix must be a vector");
 			return;
 		}
+		
 		for(int i=0; i<M.GetRows();i+=1) {
-			if(M.Entries.get(i).get(0)[0]<=0) {
-				M.Entries.get(i).get(0)[0] = 0.0;
+			for(int l=0; l<M.GetColumns();l+=1) {
+				
+				if(M.Entries.get(i).get(0)[l]<=0) {
+					M.Entries.get(i).get(0)[l] = 0.0;
+				}
+			
 			}
 		}
+		
+	}
+	
+	/**
+	 * Perform derivative operation of Relu
+	 * max(0,x) -> 0,1
+	 * Typically used for activation
+	 * @param M
+	 */
+	public static Matrix DerivRelu(Matrix M) {
+		if(M.GetColumns()!=1) {
+			System.err.println("Matrix must be a vector");
+			return null;
+		}
+		Matrix M2 = new Matrix(
+				Matrix.NewDoubleMatrix
+				(new double[M.GetRows()][M.GetColumns()]
+						)
+				,"DerivRelu");
+		for(int i=0; i<M.GetRows();i+=1) {
+			for(int l=0;l<M.GetColumns();l+=1) {
+				
+				if(M.Entries.get(i).get(0)[l]<=0) {
+					M2.Entries.get(i).get(0)[l] = 0.0;
+				}
+				else {
+					M2.Entries.get(i).get(0)[l]=1.0;
+				}
+				
+			}
+		}
+		
+		return M2;
+	}
+	
+	/**8
+	 * Perform dynamic operations on current matrix for Relu
+	 */
+	public static void DRelu(Matrix M) {
+		for(int i=0;i<M.GetRows();i+=1) {
+			for(int j=0; j<M.GetColumns();j+=1) {
+				if(M.Entries.get(i).get(0)[j]<=0) {
+					M.Entries.get(i).get(0)[j] = 0.0;
+				}
+				else {
+					M.Entries.get(i).get(0)[j]=1.0;
+				}		
+			}
+		}	
 	}
 	
 	/**
 	 * Perform SoftMax operation on Matrix which is 1 column by n rows
 	 * Used for Outputs
+	 * Typically used for activation
 	 * @param M
 	 * e^ak/sum(e^aj)
 	 */
@@ -446,16 +570,77 @@ public class Matrix implements Serializable {
 			System.err.println("Matrix must be a vector");
 			return;
 		}
+		
+		//Ensures no double function
+		double[][] ActualM = new double[M.GetRows()][M.GetColumns()];
+		
 		double sum;
 		for(int i=0; i<M.GetRows();i+=1) {
+			for(int l=0; l<M.GetColumns();l+=1) {
+				
 			sum = 0.0;
 			for(int j=0; j<M.GetRows();j+=1) {
+					sum+=Math.exp(M.Entries.get(j).get(0)[l]);
+			}
+			if(sum==0.0) {
+				sum=1.0;
+			}
+			ActualM[i][l] = Math.exp(M.Entries.get(i).get(0)[l])/sum;
+			
+			}
+		}
+		
+		//Store actual matrix values
+		for(int i=0; i<M.GetRows();i+=1) {
+			M.Entries.get(i).get(0)[0]=ActualM[i][0];
+		}
+	}
+	
+	/**
+	 * For printing out copy matrix for softmax, but not the original!
+	 * @return
+	 */
+	public String toSoftMax() {
+		Matrix M = Matrix.CopyMatrix(this, "Copy SM");
+		Matrix.SoftMax(M);
+		return M.toString();
+	}
+	
+	/**
+	 * Compute Derivative of soft max operation
+	 * EX d/d2(SM) for N = 3 = d/d2(e^x/(e^x +e^y +e^z)) == (e^y+e^z)/(e^x+e^y+e^z)^2
+	 * Typically used on activation function
+	 * @param M
+	 */
+	public static Matrix DerivSoftMax(Matrix M) {
+		
+		Matrix M2 = new Matrix(
+				Matrix.NewDoubleMatrix
+				(new double[M.GetRows()][M.GetColumns()]
+						)
+				,"DerivSoftMax");
+		
+		double sum;
+		
+		for(int i=0; i<M.GetRows();i+=1) {
+			for(int l=0; l<M.GetColumns();l+=1) {
+				
+			sum=0.0;
+			for(int j=0; j<M.GetRows();j+=1) {
 				if(i!=j) {
-					sum+=Math.exp(M.Entries.get(j).get(0)[0]);
+					//sum+=e^j
+					sum+=Math.exp(M.Entries.get(j).get(0)[l]);
 				}
 			}
-			M.Entries.get(i).get(0)[0] = Math.exp(M.Entries.get(i).get(0)[0])/sum;
+				//(e^i)*(e^j+e^k)/(e^i+e^j+e^k)^2
+				M2.Entries.get(i).get(0)[l] = 
+						Math.exp(M.Entries.get(i).get(0)[l])*sum / 
+						Math.pow(Math.exp(M.Entries.get(i).get(0)[l]) + sum,2); 
+			
+			}
 		}
+		
+		return M2;
 	}
 	
 	/**
@@ -488,6 +673,33 @@ public class Matrix implements Serializable {
 	
 		Matrix.Inverse(Matrix.CopyMatrix(N, "N COPIED"));
 	}
+	
+	/**
+	 * Normalize all entries of matrix!!!
+	 */
+	public void Normalize() {
+		System.out.println("Matrix Before Normalize:"+toString());
+		double sum = 0.0;
+		
+		for(int i=0;i<GetRows();i+=1) {
+			for(int j=0; j<GetColumns();j+=1) {
+				for(int k=0;k<GetColumns();k+=1) {
+					if(k!=j) {
+						sum+=Entries.get(i).get(0)[k];
+					}
+				}
+				//Edge case
+				if(sum==0.0) {
+					sum=1.0;
+				}
+				Entries.get(i).get(0)[j]*=1/sum;
+				sum = 0.0;
+			}
+		}
+		
+		
+		System.out.println("Normalized Matrix:"+this.toString());
+	}
 
 	/**
 	 * Randomize all entries in Matrix
@@ -505,6 +717,61 @@ public class Matrix implements Serializable {
 				}
 			}
 		}
+	}
+
+	/**
+	 * Get Error
+	 * @param getWeights
+	 * @param object
+	 * @return
+	 */
+	public static Matrix Error(Matrix Weights, Matrix Error,boolean Normalized) {
+		// TODO Auto-generated method stub
+			Matrix WTE = Matrix.Multiply(Weights.Transpose("WT"),Error,Normalized,"WTXE");
+			
+			/*
+			
+			if(Nor) {
+			if(WTE!=null)
+			WTE.Normalize();
+			}
+			
+			*/
+			
+			return WTE;
+	}
+
+	/**
+	 * Multiple two matrices across
+	 * @param getError
+	 * @param string
+	 */
+	public void MultiplyAcross(Matrix GetError, String string) {
+		// TODO Auto-generated method stub
+		if(GetError.GetRows()!=this.GetRows() ||GetError.GetColumns()!=this.GetColumns()) {
+			System.err.println("Rows Don't match for Multiply Across");
+			return;
+		}
+		
+		for(int i=0; i<this.GetRows();i+=1) {
+			for(int j=0; j<this.GetColumns();j+=1)
+			Entries.get(i).get(0)[j]*=GetError.Entries.get(i).get(0)[j];
+		}
+		this.Name = string;
+	}
+
+	/**
+	 * Multiple every entry by lr
+	 * @param learningRate
+	 * @param string
+	 */
+	public void MultiplyAcross(double LearningRate, String string) {
+		// TODO Auto-generated method stub
+		for(int i=0;i<this.GetRows();i+=1) {
+			for(int j=0; j<this.GetColumns();j+=1)
+			Entries.get(i).get(0)[j]*=LearningRate;
+		}
+		this.Name=string;
 	}
 	
 }

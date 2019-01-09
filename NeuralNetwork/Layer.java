@@ -21,6 +21,11 @@ public class Layer implements Serializable {
 	private Matrix Weights;
 	
 	/**
+	 *Weights computed after taking the Gradient
+	 */
+	private Matrix GradientWeights;
+	
+	/**
 	 * Activation of this layer
 	 */
 	private Matrix Activation;
@@ -57,7 +62,7 @@ public class Layer implements Serializable {
 			this.Activation=M;
 			Type = 'I';
 			break;
-		//Hiden Layer case, hidden layer adds weights
+		//Hidden Layer case, hidden layer adds weights
 		case 1:
 			this.Weights=M;
 			Type = 'H';
@@ -84,6 +89,7 @@ public class Layer implements Serializable {
 	 * @param A
 	 */
 	public void SetActivation(Matrix A) {
+		this.Activation=null;
 		this.Activation=A;
 	}
 	
@@ -92,10 +98,24 @@ public class Layer implements Serializable {
 	}
 	
 	/**
+	 * Set Gradient Weights
+	 * @param W
+	 */
+	public void SetGradientWeights(Matrix W) {
+		this.GradientWeights=null;
+		this.GradientWeights=W;
+	}
+	
+	public Matrix GetGradientWeights() {
+		return this.GradientWeights;
+	}
+	
+	/**
 	 * Set Weights, typicaly done during gradient
 	 * @param W
 	 */
 	public void SetWeights(Matrix W) {
+		this.Weights=null;
 		this.Weights=W;
 	}
 	
@@ -108,6 +128,7 @@ public class Layer implements Serializable {
 	 * @param E
 	 */
 	public void SetError(Matrix E) {
+		this.Error=null;
 		this.Error=E;
 	}
 	
@@ -118,6 +139,62 @@ public class Layer implements Serializable {
 	 * Print out Layer Type, Layer Matrix
 	 */
 	public String toString() {
-		return this.Type+"\n WEIGHTS \n"+(Weights!=null? Weights.toString():"")+"ACTIVATION \n"+(Activation!=null? Activation.toString():"")+"ERROR \n"+(Error!=null? Error.toString():"");
+		return this.Type+
+	"\n WEIGHTS \n"+
+	(Weights!=null? Weights.toString():"")+
+	"\n GRADIENT WEIGHTS \n"+
+	(GradientWeights!=null? GradientWeights+"":"")+
+	"\n ACTIVATION \n"+
+	(Activation!=null? (this.ActivationFunction==3? Activation.toSoftMax()+GetActivationType():Activation.toString()+GetActivationType()):"")+
+	" \n ERROR \n"+
+	(Error!=null? Error.toString():"");
 	}
+
+	/**
+	 * Gets Activation Type from ActivationFunction
+	 * @return
+	 */
+	private String GetActivationType() {
+		// TODO Auto-generated method stub
+		String s = "";
+		switch(this.ActivationFunction) {
+		case 0:
+			s = "NONE";
+			break;
+		case 1:
+			s = "SIGMOID";
+			break;
+		case 2:
+			s = "RELU";
+			break;
+		case 3:
+			s = "SOFTMAX";
+			break;
+			
+		default:
+			break;
+		}
+		
+		return s;
+	}
+
+	/**
+	 * Use activation function, if set
+	 */
+	public void Activate() {
+		switch(this.ActivationFunction) {
+			case 1:
+				Matrix.Sigmoid(Activation);
+				break;
+			case 2:
+				Matrix.Relu(Activation);
+				break;
+			case 3:
+				Matrix.SoftMax(Activation);
+				break;
+			default:
+				return;
+		}
+	}
+	
 }
