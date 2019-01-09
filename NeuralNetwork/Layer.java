@@ -53,6 +53,11 @@ public class Layer implements Serializable {
 	public int ActivationFunction;
 	
 	/**
+	 * Bias to keep track of
+	 */
+	private double Bias = 1.0;
+	
+	/**
 	 * When creating a new layer, can only have weight matrices then Input
 	 */
 	public Layer(Matrix M,int Type,int ActivationType) {
@@ -82,6 +87,13 @@ public class Layer implements Serializable {
 			return;
 		}
 		this.ActivationFunction=ActivationType;
+	}
+	
+	public void SetBias(double B) {
+		this.Bias = B;
+	}
+	public double GetBias() {
+		return this.Bias;
 	}
 	
 	/**

@@ -606,6 +606,12 @@ public class Matrix implements Serializable {
 		return M.toString();
 	}
 	
+	public Matrix toSoftMax(int Dummy) {
+		Matrix SMM = Matrix.CopyMatrix(this, "Copy SM");
+		Matrix.SoftMax(SMM);
+		return SMM;
+	}
+	
 	/**
 	 * Compute Derivative of soft max operation
 	 * EX d/d2(SM) for N = 3 = d/d2(e^x/(e^x +e^y +e^z)) == (e^y+e^z)/(e^x+e^y+e^z)^2
@@ -709,11 +715,14 @@ public class Matrix implements Serializable {
 		Random rand = new Random();
 		for(int i=0;i<GetRows();i+=1) {
 			for(int j=0; j<GetColumns();j+=1) {
+				
 				if(j==GetColumns()-1) {
 					Entries.get(i).get(0)[j]=1.0;
 				}
 				else {
+				
 					Entries.get(i).get(0)[j]=rand.nextDouble();
+				
 				}
 			}
 		}

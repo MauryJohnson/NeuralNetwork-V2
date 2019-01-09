@@ -154,11 +154,11 @@ public class NeuralNetwork {
 				
 				//Random weights to maximize chance of success
 				Weights.Randomize();
+				//Set Bias to 1.0
 				
 				AddLayer((new Layer(
 						Weights
 						,1,ActivationFunction)));
-				
 			}
 			else if(i==0) {
 				Matrix Input = new Matrix(
@@ -168,6 +168,7 @@ public class NeuralNetwork {
 						,"Input");
 				AddLayer(new Layer(Input,0,0));
 			}
+			//this.Layers.get(i).SetBias(1.0);
 		}
 		
 		//Scanner.close();
@@ -293,11 +294,20 @@ public class NeuralNetwork {
 						}
 						));
 				}
-				
+				/*
+				//Final layer, output layer, store bias from previous activation layer
+				else {
+					Matrix PreviousActivation = N.Layers.get(i-1).GetActivation();
+					//GET bias from last entry
+					//N.Layers.get(i).SetBias(PreviousActivation.Entries.get(PreviousActivation.GetRows()-1).get(0)[0]);
+				}
+				*/
 				}
 				
-				
 			}
+			
+			//Strip NN of biases, store them
+			N.StripBiases();
 			
 			System.out.println("Finished Feeding Neural Network:");
 			System.out.println(N.toString());
@@ -316,29 +326,37 @@ public class NeuralNetwork {
 		//Error matrix will be expected value - Actual output
 		double[][] Error = new double[N.Layers.get(N.Layers.size()-1).GetActivation().GetRows()][1];
 		
+		Matrix SMM = null;
+		if(N.Layers.get(N.Layers.size()-1).ActivationFunction==3) {
+			SMM = N.Layers.get(N.Layers.size()-1).GetActivation().toSoftMax(0);
+		}
+		else {
+			SMM = N.Layers.get(N.Layers.size()-1).GetActivation();
+		}
+		
 		if(ExpectedOutput==null) {
 		
 		double E = 0.0;
 		
-		for(int i=0;i<N.Layers.get(N.Layers.size()-1).GetActivation().GetRows();i+=1) {
+		for(int i=0;i<SMM.GetRows();i+=1) {
 			System.out.println("Enter expected output "+(i+1)+":");
 			
 			E=N.Scanner.nextDouble();
 			
-			Error[i][0] = E-N.Layers.get(N.Layers.size()-1).GetActivation().Entries.get(i).get(0)[0];
+			Error[i][0] = E-SMM.Entries.get(i).get(0)[0];
 			
-			System.out.println("Error:"+(E-N.Layers.get(N.Layers.size()-1).GetActivation().Entries.get(i).get(0)[0]));
+			System.out.println("Error:"+(E-SMM.Entries.get(i).get(0)[0]));
 		}
 		
 		}
 		else {	
 		
-			for(int i=0;i<N.Layers.get(N.Layers.size()-1).GetActivation().GetRows();i+=1) {
+			for(int i=0;i<SMM.GetRows();i+=1) {
 				System.out.println("Enter expected output "+(i+1)+":");
 			
-				Error[i][0] = ExpectedOutput[i][0]-N.Layers.get(N.Layers.size()-1).GetActivation().Entries.get(i).get(0)[0];
+				Error[i][0] = ExpectedOutput[i][0]-SMM.Entries.get(i).get(0)[0];
 				
-				System.out.println("Error:"+(ExpectedOutput[i][0]-N.Layers.get(N.Layers.size()-1).GetActivation().Entries.get(i).get(0)[0]));
+				System.out.println("Error:"+(ExpectedOutput[i][0]-SMM.Entries.get(i).get(0)[0]));
 			}
 			
 		}
@@ -459,6 +477,58 @@ public class NeuralNetwork {
 		N.Scanner.close();
 	}
 	
+	/**
+	 * Strip all biases in order to have correct gradients, biases are already factored in!
+	 * Also strip all weights appended with 1.0, because bias is no longer there
+	 */
+	private void StripBiases() {
+		// TODO Auto-generated method stub
+		for(int i=0; i<this.Layers.size();i+=1) {
+			
+			if(i<this.Layers.size()-1) {
+			//Remove Bias
+			this.Layers.get(i).SetBias(this.Layers.get(i).GetActivation().
+					Entries.get(this.Layers.get(i).GetActivation().Entries.size()-1).get(0)[0]);
+			this.Layers.get(i).GetActivation().Entries.remove(this.Layers.get(i).GetActivation().Entries.size()-1);
+			}
+			
+			
+			if(i>0) {
+			int Columns = this.Layers.get(i).GetWeights().GetColumns()-1;
+				
+			//Remove bias mults
+			for(int j=0; j<this.Layers.get(i).GetWeights().Entries.size();j+=1) {
+				
+				double [] Strp = new double [Columns];
+				
+				for(int l=0; l<Columns;l+=1) {
+				
+					Strp[l]=this.Layers.get(i).GetWeights().Entries.get(j).get(0)[l];
+				
+				}
+				
+				this.Layers.get(i).GetWeights().Entries.get(j).remove(0);
+				this.Layers.get(i).GetWeights().Entries.get(j).add(Strp);
+			}
+			
+			}
+		}
+	}
+
+	/**
+	 * Learn by adjusting all weights by the gradient weights -> W=W+GW
+	 * @param NN
+	 */
+	public static void Learn(NeuralNetwork NN) {
+		
+		for(int i=1; i<NN.Layers.size();i+=1) {
+			NN.Layers.get(i).SetWeights(Matrix.Add(NN.Layers.get(i).GetWeights(), NN.Layers.get(i).GetGradientWeights(), 1));
+		}
+		
+		System.out.println("Network New Learned Weights:");
+		
+		System.out.println(NN.toString());
+	}
 	
 	public static void main(String[] args) {
 		//Test input layer for neural network
@@ -487,6 +557,8 @@ public class NeuralNetwork {
 		NeuralNetwork.BackPropagate(NN, null);
 		
 		NeuralNetwork.Gradient(NN);
+		
+		NeuralNetwork.Learn(NN);
 		
 		System.out.println(NN);
 		
