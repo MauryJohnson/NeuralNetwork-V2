@@ -331,7 +331,7 @@ public class NeuralNetwork {
 	 * Propagate this error back, if error!=0
 	 * @param N
 	 */
-	public static void BackPropagate(NeuralNetwork N, double[][] ExpectedOutput) {
+	public static int BackPropagate(NeuralNetwork N, double[][] ExpectedOutput) {
 		
 		//Error matrix will be expected value - Actual output
 		double[][] Error = new double[N.Layers.get(N.Layers.size()-1).GetActivation().GetRows()][1];
@@ -374,6 +374,17 @@ public class NeuralNetwork {
 			
 		}
 		
+		boolean NoError = true;
+		for(int i=0; i<Error.length;i+=1) {
+			if(!(Error[i][0]<0.0001 || Error[i][0]<-0.0001)) {
+				System.err.println("Still error");
+				NoError=false;
+			}
+		}
+		
+		if(NoError) {
+			return 1;
+		}
 		Matrix FirstError = new Matrix(
 				Matrix.NewDoubleMatrix(Error)
 				,"EM");
@@ -392,7 +403,8 @@ public class NeuralNetwork {
 			
 		}
 		
-	
+		return 0;
+		
 	}
 	
 	/**
@@ -539,7 +551,7 @@ public class NeuralNetwork {
 			
 			if(i>0) {
 			int Columns = this.Layers.get(i).GetWeights().GetColumns()-1;
-				
+			this.Layers.get(i).GetWeights().Name="";
 			//Remove bias mults
 			for(int j=0; j<this.Layers.get(i).GetWeights().Entries.size();j+=1) {
 				
@@ -598,7 +610,7 @@ public class NeuralNetwork {
 		
 		int i=0;
 		
-		while(i<100) {
+		while(i<100000) {
 		NeuralNetwork.FeedForward(NN,
 				new double[][] {
 				{1.0},
@@ -606,13 +618,19 @@ public class NeuralNetwork {
 				}
 				);
 		
-		NeuralNetwork.BackPropagate(NN, 
+		if(NeuralNetwork.BackPropagate(NN, 
 				new double[][] {
 				{1.0},
+				{0},
 				{1.0}
 				}
 				
-				);
+				)==1) {
+			
+			System.out.println("Network Cannot learn any more");
+			System.out.println("NET:"+NN.toString());
+			break;
+		}
 		
 		NeuralNetwork.Gradient(NN,0.5);
 		
