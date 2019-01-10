@@ -15,7 +15,12 @@ public class Graph {
 	 * Hashtable
 	 * first entry is x, second is y
 	 */
-	private Hashtable<double[],double[]> HT= new Hashtable<double[],double[]>();
+	private Hashtable<double[],double[]> HT = new Hashtable<double[],double[]>();
+	
+	/**
+	 * Label name for graph
+	 */
+	public String Name;
 	
 	/**
 	 * Add x,y,....., coordinates to HT

@@ -386,7 +386,7 @@ public class Matrix implements Serializable {
 	 */
 	public static Matrix Add(Matrix A, Matrix B, int Val) {
 		if(A.GetColumns()!=B.GetColumns()||A.GetRows()!=B.GetRows()) {
-			System.err.println("First Matrix does not match size of second Matrix");
+			System.err.println("First Matrix:\n"+A+"does not match size of second Matrix:\n"+B);
 			return null;
 		}
 		
@@ -776,6 +776,12 @@ public class Matrix implements Serializable {
 	 * @param string
 	 */
 	public void MultiplyAcross(Matrix GetError, String string) {
+		
+		if(GetError.Entries.size()==1) {
+			MultiplyAcross(GetError.Entries.get(0).get(0)[0],string);
+			return;
+		}
+		
 		// TODO Auto-generated method stub
 		if(GetError.GetRows()!=this.GetRows() ||GetError.GetColumns()!=this.GetColumns()) {
 			System.err.println("Rows Don't match for Multiply Across");
