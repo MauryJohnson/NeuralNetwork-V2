@@ -1,11 +1,13 @@
 package NeuralNetwork;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Locale;
 import java.util.Scanner;
 
 import Matrix.Matrix;
 import Statistics.Graph;
+import Statistics.*;
 
 /**
  * Neural Network object, contains ArrayList of Layer Objects which store date about network 
@@ -14,8 +16,13 @@ import Statistics.Graph;
  * @author Maury Johnson
  *
  */
-public class NeuralNetwork {
+public class NeuralNetwork implements Serializable{
 	
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 7210106539963594255L;
+
 	/**
 	 * Used for layers
 	 */
@@ -33,6 +40,16 @@ public class NeuralNetwork {
 	public int Error;
 	
 	/**
+	 * Default bias MULTIPLIER!!!, may need adjustment to satisfy edge case
+	 */
+	public double Bias = 1.0;
+	
+	/**
+	 * List of all biases for layer 1 to layer n
+	 */
+	//ArrayList<double[]> Biases = new ArrayList<double[]>();
+	
+	/**
 	 * Normalized error or not?
 	 */
 	public boolean Normalized;
@@ -43,9 +60,15 @@ public class NeuralNetwork {
 	public ArrayList<Graph> G = new ArrayList<Graph>();
 	
 	/**
+	 * ArrayList of Maps to Graph using Charts
+	 */
+	private ArrayList<HMap> HMaps = new ArrayList<HMap>();
+	
+	/**
 	 * Plain Neural Network
 	 */
 	public NeuralNetwork() {
+		
 	}
 	
 	/**
@@ -82,7 +105,7 @@ public class NeuralNetwork {
 	
 	/**
 	 * STAGE 0
-	 * Crate Neural Network with Weights, which are randomized values
+	 * Create Neural Network with Weights, which are randomized values
 	 * Prompts the user
 	 */
 	public void CreateNeuralNetwork(double[][] NetworkBase) {
@@ -167,6 +190,11 @@ public class NeuralNetwork {
 				AddLayer((new Layer(
 						Weights
 						,1,ActivationFunction)));
+				
+				//Add biases ONLY for initialized, only used at end for error shown and then gradient
+				//if(this.Biases.size()!=this.Layers.size()-1)
+				//this.Biases.add(1.0);
+				//Matrix.CollectBiases(Weights,this.Biases,i-1);
 			}
 			else if(i==0) {
 				Matrix Input = new Matrix(
@@ -221,6 +249,9 @@ public class NeuralNetwork {
 							Weights
 							,1,1)));
 					
+					//if(this.Biases.size()!=this.Layers.size()-1)
+					//this.Biases.add(1.0);
+					//Matrix.CollectBiases(Weights,this.Biases,i-1);
 				}
 				else if(i==0) {
 					Matrix Input = new Matrix(
@@ -260,18 +291,16 @@ public class NeuralNetwork {
 			
 		}
 		else {
-			//Check if input dimensions match
-			if(Input.length!=N.Layers.get(0).GetActivation().GetRows()||Input[0].length!=N.Layers.get(0).GetActivation().GetColumns()) {
-				System.err.println("Input Dimensions don't match Activation Dimensions");
-				return;
-			}
 			
-			for(int i=0; i<N.Layers.get(0).GetActivation().GetRows();i+=1) {
+			for(int i=0; i<N.Layers.get(0).GetActivation().GetRows()&&i<Input.length;i+=1) {
 				System.out.println("Inserting Input "+(i+1)+":"+Input[i][0]);
 				N.Layers.get(0).GetActivation().Entries.get(i).get(0)[0]=Input[i][0];
 			}
+		
 		}
+		
 			//Add Bias to Input layer, 1.0
+			
 			N.Layers.get(0).GetActivation().Entries.add(Matrix.NewDoubleList(
 					new double[] {
 							1.0
@@ -280,11 +309,14 @@ public class NeuralNetwork {
 			
 			//Hidden/Output layer
 			for(int i=0; i<N.Layers.size();i+=1) {
+				
 				if(i>=1) {
 				
 				Matrix A = Matrix.Multiply(N.Layers.get(i).GetWeights(),
-						N.Layers.get(i-1).GetActivation(),false,
+						N.Layers.get(i-1).GetActivation(),false,true,
 						"Activation "+(i+1));
+				
+				Matrix.CollectMultipliedBiases(N.Layers.get(i),N.Layers.get(i).GetWeights(),N.Layers.get(i-1).GetActivation());
 				
 				if(A==null) {
 					System.err.println("Null Activation Matrix!");
@@ -295,34 +327,21 @@ public class NeuralNetwork {
 							A
 				);
 				
-				//Activate Layer using Activation Function... Special case for softmax. don't activate it in order to do gradient on same
-				//values, but show the user the result of doing the softmax function on the activation vector
-				//if(N.Layers.get(i).ActivationFunction!=3)
 				N.Layers.get(i).Activate();
 				
-				if(i!=N.Layers.size()-1) {
-				//Add Bias for Activation to end of Activation ROW ??? ONLY IF HIDDEN LAYER
-				//OUTPUT LAYER NO BIAS!!! ANSWER IS THERE
+				if(i!=N.Layers.size()-1)
 				N.Layers.get(i).GetActivation().Entries.add(Matrix.NewDoubleList(
 						new double[] {
 							1.0
 						}
-						));
-				}
-				/*
-				//Final layer, output layer, store bias from previous activation layer
-				else {
-					Matrix PreviousActivation = N.Layers.get(i-1).GetActivation();
-					//GET bias from last entry
-					//N.Layers.get(i).SetBias(PreviousActivation.Entries.get(PreviousActivation.GetRows()-1).get(0)[0]);
-				}
-				*/
+				));
+				
 				}
 				
 			}
 			
 			//Strip NN of biases, store them
-			N.StripBiases();
+			//N.StripBiases();
 			
 			System.out.println("Finished Feeding Neural Network:");
 			System.out.println(N.toString());
@@ -337,43 +356,52 @@ public class NeuralNetwork {
 	 */
 	public static int BackPropagate(NeuralNetwork N, double[][] ExpectedOutput) {
 		
+		//Prop back rows-1, because not using bias multiple yet
+		int Rows = N.Layers.get(N.Layers.size()-1).GetActivation().GetRows();
+		
 		//Error matrix will be expected value - Actual output
-		double[][] Error = new double[N.Layers.get(N.Layers.size()-1).GetActivation().GetRows()][1];
+		double[][] Error = new double[Rows][1];
 		
 		Matrix SMM = N.Layers.get(N.Layers.size()-1).GetActivation();
 		
-		/*
-		if(N.Layers.get(N.Layers.size()-1).ActivationFunction==3) {
-			SMM = N.Layers.get(N.Layers.size()-1).GetActivation().toSoftMax(0);
+		
+		
+		//Activate all layer biases in order to compute correct error
+		for(int i=0; i<N.Layers.size();i+=1) {
+			
+			N.Layers.get(i).ActivateB();
+			
 		}
-		else {
-			SMM = N.Layers.get(N.Layers.size()-1).GetActivation();
-		}
-		*/
 		
 		if(ExpectedOutput==null) {
 		
 		double E = 0.0;
 		
-		for(int i=0;i<SMM.GetRows();i+=1) {
+		for(int i=0;i<Rows;i+=1) {
 			System.out.println("Enter expected output "+(i+1)+":");
 			
 			E=N.Scanner.nextDouble();
 			
 			Error[i][0] = E-SMM.Entries.get(i).get(0)[0];
 			
-			System.out.println("Error:"+(E-SMM.Entries.get(i).get(0)[0]));
+			System.out.println("Error With Bias:"+(E-SMM.Entries.get(i).get(0)[0]));
+			
+			//System.out.println("Actual Error:"+(E-SMM.Entries.get(i).get(0)[0] - N.Layers.get(N.Layers.size()-1).Biases.get(i) ));
+		
 		}
 		
 		}
 		else {	
 		
-			for(int i=0;i<SMM.GetRows();i+=1) {
-				System.out.println("Enterer expected output "+(i+1)+":");
+			for(int i=0;i<Rows;i+=1) {
+				System.out.println("Enter expected output "+(i+1)+":");
 			
 				Error[i][0] = ExpectedOutput[i][0]-SMM.Entries.get(i).get(0)[0];
 				
-				System.out.println("Error:"+(ExpectedOutput[i][0]-SMM.Entries.get(i).get(0)[0]));
+				System.out.println("Error With Bias:"+(ExpectedOutput[i][0]-SMM.Entries.get(i).get(0)[0]));
+				
+				//System.out.println("Actual Error:"+(ExpectedOutput[i][0]-SMM.Entries.get(i).get(0)[0] - N.Layers.get(N.Layers.size()-1).Biases.get(i) ));
+				
 			}
 			
 		}
@@ -385,6 +413,9 @@ public class NeuralNetwork {
 				System.err.println("Still error");
 				NoError=false;
 			}
+			else {
+				//N.Bias = 0.0;
+			}
 		}
 		
 		if(NoError) {
@@ -394,15 +425,51 @@ public class NeuralNetwork {
 		Matrix FirstError = new Matrix(
 				Matrix.NewDoubleMatrix(Error)
 				,"EM");
-		N.Layers.get(N.Layers.size()-1).SetError(FirstError);
 		
-		//Loop backwards through Neural Network
+		N.Layers.get(N.Layers.size()-1).SetError(FirstError);
 		
 		for(int i = N.Layers.size()-1;i>1;i-=1) {
 		
+			//if(i!=N.Layers.size()-1) {
 			//Error of current layer
-			Matrix BackError = Matrix.Error(N.Layers.get(i).GetWeights(),i==N.Layers.size()-1? FirstError:N.Layers.get(i+1).GetError(),N.Normalized);
+			
+			/*
+			Matrix BE = null;
+			//if(i==1) {
+				BE = Matrix.CopyMatrix(i==N.Layers.size()-1? FirstError:N.Layers.get(i+1).GetError(), "BE COPY");
+			
+				if(i!=N.Layers.size()-1) {
+				BE.Entries.add(Matrix.NewDoubleList(
+						new double[] {
+								N.Layers.get(i).BSum()
+						}
+				));
+				}
+			*/
+			//}
+		
+			
+			//Append to weight matrix 1's
+			
+			//Back Error w/o using bias...
+			Matrix BackError = Matrix.Error(N.Layers.get(i).GetWeights(),i==N.Layers.size()-1? 
+					FirstError:N.Layers.get(i).GetError(),N.Normalized);
+			
+			//Biases are set already, must then allow gradient to take care of them
+			//Collect all biases to BE when multiplying wT*E!!
+			
+			Matrix.CollectErrorBiases(
 					
+					N.Layers.get(i),
+					
+					N.Layers.get(i).GetWeights().Transpose("WT"),
+					
+					i==N.Layers.size()-1? FirstError:(i==1? BackError:N.Layers.get(i).GetError()),
+					
+					N.Normalized
+			
+			);
+			
 			N.Layers.get(i-1).SetError(BackError);
 			
 		}
@@ -429,7 +496,7 @@ public class NeuralNetwork {
 		}
 		
 		//lr * E * (derivAct) * H^T
-		for(int i=1; i<N.Layers.size();i+=1) {
+		for(int i=N.Layers.size()-1; i>=1;i-=1) {
 			
 			Matrix GradientWeight = null;
 			
@@ -438,65 +505,95 @@ public class NeuralNetwork {
 			switch(N.Layers.get(i).ActivationFunction) {
 			
 			case 0:
-				System.out.println("Using No Derivative, Const");
-				GradientWeight = N.Layers.get(i).GetWeights();
-				ActivationTranspose = N.Layers.get(i).GetActivation().Transpose("Step 4");
+				System.out.println("Using No Derivative, GUESSING GAME!!");
+				
+				ActivationTranspose = N.Layers.get(i-1).GetActivation().Transpose("Step 4");
+				
+				//NO DERIVATIVE! Get randomized version of activation!
+				N.Layers.get(i).GetActivation().Randomize();
+				
+				N.Layers.get(i).GetActivation().MultiplyAcross(N.Layers.get(i).GetError(), "Step 2");
+				
+				System.out.println("ACTIVATION STAT3:\n"+N.Layers.get(i).GetActivation());
+				
+				//multiply learning rate
+				
+				N.Layers.get(i).GetActivation().MultiplyAcross(LearningRate,"Step 3");
+				
 				break;
 				
 			case 1:
 				System.out.println("Using Derivative of Sigmoid");
 			
-				//Get transpose of activation before changes
-				ActivationTranspose = N.Layers.get(i).GetActivation().Transpose("Step 4");
+				//Get transpose of PREVIOUS activation before changes
+				ActivationTranspose = N.Layers.get(i-1).GetActivation().Transpose("Step 4");
+				
+				System.out.println("ACTIVATION STAT1:\n"+N.Layers.get(i).GetActivation());
 				
 				//DSig of activation
-				Matrix.DSigmoid(N.Layers.get(i).GetActivation());
+				Matrix.DSigmoid(N.Layers.get(i).GetActivation(),true);
 				//DSigmoid of error
 				//Matrix.DSigmoid(N.Layers.get(i).GetError());
+				
+				System.out.println("ACTIVATION STAT2:\n"+N.Layers.get(i).GetActivation());
+				
 				//Multiply error by dsig of activation
 				N.Layers.get(i).GetActivation().MultiplyAcross(N.Layers.get(i).GetError(), "Step 2");
+				
+				System.out.println("ACTIVATION STAT3:\n"+N.Layers.get(i).GetActivation());
+				
 				//multiply learning rate
 				N.Layers.get(i).GetActivation().MultiplyAcross(LearningRate,"Step 3");
 				
 				//GradientWeight = Matrix.Multiply(N.Layers.get(i).GetActivation(),ActivationTranspose,false,"Step 5");
+				
+				//^^ Version from yt, ONLY works on relu and nXn size layers!!!!!!1
 				
 				break;
 			
 			case 2:
 				System.out.println("Using Derivative of Relu");
 				
-				//get transpose of activation before changes
-				ActivationTranspose = N.Layers.get(i).GetActivation().Transpose("Step 4");
+				//get transpose of PREVIOUS activation before changes
+				ActivationTranspose = N.Layers.get(i-1).GetActivation().Transpose("Step 4");
 				
 				//DRelu of activation
-				Matrix.DRelu(N.Layers.get(i).GetActivation());
+				Matrix.DRelu(N.Layers.get(i).GetActivation(),true);
 				//DRelu of error
 				//Matrix.DRelu(N.Layers.get(i).GetError());
+				
 				//multiple dRelu of activation by error
 				N.Layers.get(i).GetActivation().MultiplyAcross(N.Layers.get(i).GetError(), "Step 2");
+				
 				//Multiply by learning rate
 				N.Layers.get(i).GetActivation().MultiplyAcross(LearningRate,"Step 3");
 				
 				//Gradient
 				//GradientWeight = Matrix.Multiply(N.Layers.get(i).GetActivation(),ActivationTranspose,false,"Step 5");
 				
+				//^^ Version from yt, ONLY works on relu and nXn size layers!!!!!!1
+				
 				break;
 				
 			case 3:
 				System.out.println("Using Derivative of SoftMax");
-				//Transpose of activation before change
-				ActivationTranspose = N.Layers.get(i).GetActivation().Transpose("Step 4");
+				
+				//Transpose of PREVIOUS activation before change
+				ActivationTranspose = N.Layers.get(i-1).GetActivation().Transpose("Step 4");
+				
 				//Derive soft max of activation
-				Matrix.DSoftMax(N.Layers.get(i).GetActivation());
+				Matrix.DSoftMax(N.Layers.get(i).GetActivation(),true);
 				//DSoftMax of error
 				//Matrix.DSoftMax(N.Layers.get(i).GetError());
+				
 				//Multiply by error of that
 				N.Layers.get(i).GetActivation().MultiplyAcross(N.Layers.get(i).GetError(), "Step 2");
+				
 				//Multiply by learning rate
 				N.Layers.get(i).GetActivation().MultiplyAcross(LearningRate,"Step 3");
 				
-				
-				
+				//^^ Version from yt, ONLY works on relu and nXn size layers!!!!!!1
+							
 				break;
 				
 			default:
@@ -505,24 +602,12 @@ public class NeuralNetwork {
 				
 			}
 			
-			//if(N.Layers.get(i).GetError().Entries.size()!=1) {
-			
-			GradientWeight = Matrix.Multiply(N.Layers.get(i).GetActivation(),ActivationTranspose,false,"Step 5");
+			//Full multiplication now
+			GradientWeight = Matrix.Multiply(N.Layers.get(i).GetActivation(),ActivationTranspose,false,true,"Step 5");
 				
-			//}
-			//else {
-			/*	
-			System.out.println("Activation:\n"+N.Layers.get(i).GetActivation()+" Error:\n"+N.Layers.get(i).GetError()+" Activation Transpose:\n"+ActivationTranspose);
-			//System.exit(-1);
-			N.Layers.get(i).GetActivation().MultiplyAcross(N.Layers.get(i).GetError(),"2");
-			GradientWeight = Matrix.CopyMatrix(N.Layers.get(i).GetActivation(),"2");
-			*/
-			
-			//System.out.println("Gradient Weight:\n"+GradientWeight);
-	
-			//System.exit(-1);
-			
-			//}
+			//if(i!=1)
+			N.Layers.get(i-1).GetActivation().Entries.remove(N.Layers.get(i-1).GetActivation().Entries.size()-1);
+			N.Layers.get(i-1).Biases = null;
 			
 			N.Layers.get(i).SetGradientWeights(GradientWeight);
 			
@@ -537,7 +622,7 @@ public class NeuralNetwork {
 	
 	/**
 	 * Append 1.0's to end of all weights
-	 */
+	 
 	private void AddBiases() {
 		
 		for(int i=1; i<this.Layers.size();i+=1) {
@@ -560,20 +645,19 @@ public class NeuralNetwork {
 		
 		
 	}
+	*/
 	
 	/**
 	 * Strip all biases in order to have correct gradients, biases are already factored in!
 	 * Also strip all weights appended with 1.0, because bias is no longer there
-	 */
+	 
 	private void StripBiases() {
 		// TODO Auto-generated method stub
 		for(int i=0; i<this.Layers.size();i+=1) {
 			
 			if(i<this.Layers.size()-1) {
 			//Remove Bias
-			this.Layers.get(i).SetBias(this.Layers.get(i).GetActivation().
-					Entries.get(this.Layers.get(i).GetActivation().Entries.size()-1).get(0)[0]);
-			this.Layers.get(i).GetActivation().Entries.remove(this.Layers.get(i).GetActivation().Entries.size()-1);
+			
 			}
 			
 			
@@ -596,9 +680,12 @@ public class NeuralNetwork {
 			}
 			
 			}
+			
 		}
+		
 	}
-
+	 */
+	
 	/**
 	 * Learn by adjusting all weights by the gradient weights -> W=W+GW
 	 * @param NN
@@ -606,18 +693,14 @@ public class NeuralNetwork {
 	public static void Learn(NeuralNetwork NN) {
 		
 		for(int i=1; i<NN.Layers.size();i+=1) {
-			if(NN.Layers.get(i).GetGradientWeights().GetRows()==1 && NN.Layers.get(i).GetGradientWeights().GetColumns()==1) {
 			
-			//Add all weights to GW
-			for(int j=0; j<NN.Layers.get(i).GetWeights().GetRows();j+=1) {
-					for(int l=0; l<NN.Layers.get(i).GetWeights().GetColumns();l+=1) {
-						NN.Layers.get(i).GetWeights().Entries.get(j).get(0)[l]+=NN.Layers.get(i).GetGradientWeights().Entries.get(0).get(0)[0];
-					}
+			//Adding W from GW, THIS TIME THIS WILL HANDLE ENTIRE WEIGHT MATRIX!!!!!!!!!!!!!!!!!!!!!! XD XD XD XD
+			for(int j=0; j<NN.Layers.get(i).GetWeights().GetRows();j+=1)
+				for(int k=0; k<NN.Layers.get(i).GetWeights().GetColumns();k+=1) {
+					
+					NN.Layers.get(i).GetWeights().Entries.get(j).get(0)[k]+=NN.Layers.get(i).GetGradientWeights().Entries.get(j).get(0)[k];
+					
 				}
-			
-			}
-			else
-			NN.Layers.get(i).SetWeights(Matrix.Add(NN.Layers.get(i).GetWeights(), NN.Layers.get(i).GetGradientWeights(),1));
 		}
 		
 		System.out.println("Network New Learned Weights:");
@@ -646,52 +729,77 @@ public class NeuralNetwork {
 		
 		NeuralNetwork NN = new NeuralNetwork();
 		NN.CreateNeuralNetwork(null);
+
+		NN.HMaps.add(new HMap("Loss"));
+		
+		NN.HMaps.add(new HMap("Graph"));
+		
+		NN.HMaps.add(new HMap("Gradient"));
 		
 		int i=0;
 		
-		while(i<100000) {
+		while(i<10000) {
+	
+		//Feeding input
 		NeuralNetwork.FeedForward(NN,
 				new double[][] {
 				{1.0},
-				{0.0}
+				{1.0},
+				{1.0}
 				}
 				);
+		//break;
+		
+		//Returned output -> Sum of all activations... flattened result
+		
+		NN.HMaps.get(1).Map.put(new Double[] {
+				3.0	
+		},NN.Layers.get(NN.Layers.size()-1).GetActivation().Sum());	
 		
 		if(NeuralNetwork.BackPropagate(NN, 
 				new double[][] {
-				{0.4}/*,
-				{0.0}*/
+				{20.0},
+				{0.0},
+				{40.0}
 				}
 				)==1) {
 			
 			System.out.println("Network Cannot learn any more");
 			System.out.println("NET:"+NN.toString());
 			System.out.println("Iterations:"+(i+1));
-			return;
+			break;
 		}
+		//break;
 		
+		//Compute Gradient Descent
+		//Graph? Iteration x gradient sum y
 		NeuralNetwork.Gradient(NN,0.1);
+		NN.HMaps.get(2).Map.put(new Double[] {
+				i*1.0
+		},NN.Layers.get(NN.Layers.size()-1).GetGradientWeights().Sum());
 		
 		NeuralNetwork.Learn(NN);
 		
-		NN.AddBiases();
+		//NN.AddBiases();
+		
+		//Put Loss values IE error
+		NN.HMaps.get(0).Map.put(new Double[] {
+				i*1.0
+		},NN.Layers.get(NN.Layers.size()-1).GetError().Sum());
 		
 		i+=1;
+		//break;
 		}
 		
 		System.out.println(NN);
 		
-		/*
-		Matrix Hidden = new Matrix(
-				Matrix.NewDoubleMatrix(
-				new double[][] {
-					
-				}	
-				)
-				,"Hidden Layer Matrix");
-		//Hidden Layer
-		Layer HiddenLayer = new Layer
-		*/
+		//Create Error Loss Chart
+		LineChart.CreateChart(new String[] {"Loss","Error Loss","LOSS","Trial","Error"},NN.HMaps.get(0));
+		//Create Graph of feed forward in and out
+		LineChart.CreateChart(new String[] {"IN vs OUT","Function","IN vs OUT","Iteration","Output"}, NN.HMaps.get(1));
+		//Create gradient value vs iteration
+		LineChart.CreateChart(new String[] {"Gradient","Gradient","Gradient vs iteration","Iteration","Gradient"}, NN.HMaps.get(2));
+		
 	}
 	
 }

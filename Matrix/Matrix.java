@@ -1,8 +1,13 @@
 package Matrix;
 
 import java.io.Serializable;
+
 import java.util.ArrayList;
 import java.util.Random;
+
+import NeuralNetwork.Layer;
+
+//import org.checkerframework.checker.nullness.qual.Nullable;
 
 /**
  * Matrix, can be dynamic or used for operations allows operations on matrices or a matrix object
@@ -39,6 +44,11 @@ public class Matrix implements Serializable {
 	 * Assign a name to matrix
 	 */
 	public String Name = "";
+	
+	/**
+	 * Bias of matrix of multiplication, set to final parameter of second matrix
+	 */
+	//public Double Bias = Double.MIN_VALUE;
 	
 	/**
 	 * Create a new Matrix
@@ -111,16 +121,18 @@ public class Matrix implements Serializable {
 	 * @param M2
 	 * @return
 	 */
-	public static Matrix Multiply(Matrix M1, Matrix M2,boolean Normalized,String Name) {
+	public static Matrix Multiply(Matrix M1, Matrix M2,boolean Normalized,boolean Biased,String Name) {
 		System.out.println("Multiply\n"+M1+"\n and\n"+M2);
-		if(M1.GetColumns()!=M2.GetRows()) {
+		
+		/*
+		if(M1.GetColumns()!=M2.GetRows() && Biased) {
 			System.err.println(" MISMATCH M1 Rows and M2 Columns");
 			return null;
 		}
-
+		*/
+		
 		double[][] AllSums = new double[M1.GetRows()][M2.GetColumns()];
 		
-		//
 		for(int i=0; i<M1.GetRows();i+=1) {
 		
 			double[] Sums = new double[M2.GetColumns()];
@@ -131,7 +143,7 @@ public class Matrix implements Serializable {
 				double sum = 0.0;
 				
 				//Where you sum M1's column with M2's Row
-				for(int k=0; k<M1.GetColumns();k+=1) {
+				for(int k=0; k< (Biased? M1.GetColumns():M1.GetColumns()-1) ;k+=1) {
 				
 					sum+=	M1.Entries.get(i).get(0)[k]
 							*
@@ -164,7 +176,14 @@ public class Matrix implements Serializable {
 			AllSums[i]=Sums;
 		}
 		
-		return new Matrix(Matrix.NewDoubleMatrix(AllSums),Name);	
+		Matrix M3 = new Matrix(Matrix.NewDoubleMatrix(AllSums),Name);
+		
+		/*
+		if(M2.GetColumns()==1)
+		M3.Bias = M2.Entries.get(M2.GetRows()-1).get(0)[0];
+		*/
+		
+		return M3;	
 	}
 	
 	/**
@@ -172,14 +191,20 @@ public class Matrix implements Serializable {
 	 * @param M1
 	 * @return
 	 */
-	public void Multiply(Matrix M1,boolean Normalized,String Name) {
+	public void Multiply(Matrix M1,boolean Normalized,boolean Biased,String Name) {
 		if(GetColumns()!=M1.GetRows()) {
 			System.err.println(Name+"'s Columns:"+this.GetColumns()+" is not equal to "+M1.Name+"'s Rows:"+M1.GetRows());
 			return;
 		}
-		Matrix M = Matrix.Multiply(this,M1,Normalized,Name);
+		Matrix M = Matrix.Multiply(this,M1,Normalized,Biased,Name);
 		this.Entries=null;
 		this.Entries=M.Entries;
+		
+		/*
+		if(M1.GetColumns()==1)
+		this.Bias =  M1.Entries.get(M1.GetRows()-1).get(0)[0];
+		*/
+		
 	}
 	
 	/**
@@ -199,13 +224,13 @@ public class Matrix implements Serializable {
 			Matrix InverseMatrix = Matrix.Inverse(this);
 			Power=Power*-1;
 			for(int i=0;i<Power;i+=1)
-			InverseMatrix.Multiply(InverseMatrix,false,"Multiply Inverse X"+(i+1));
+			InverseMatrix.Multiply(InverseMatrix,false,true,"Multiply Inverse X"+(i+1));
 			return InverseMatrix;
 		}
 		else
 		{
 			for(int i=0; i<Power;i+=1)
-			this.Multiply(this,false,"Multiply X"+(i+1));
+			this.Multiply(this,false,true,"Multiply X"+(i+1));
 			return this;
 		}
 	}
@@ -401,6 +426,16 @@ public class Matrix implements Serializable {
 		return new Matrix(Matrix.NewDoubleMatrix(Result),A.Name+"-"+B.Name);
 	}
 	
+	/*
+	 * Subtract value from entire matrix
+	 */
+	public static void Subtract(Matrix A,double Val) {
+		for(int i=0; i<A.GetRows();i+=1) {
+			for(int j=0; j<A.GetColumns();j+=1)
+			A.Entries.get(i).get(0)[j]-=Val;
+		}
+	}
+	
 	/**
 	 * Make new Arraylist of double values
 	 * @param entries
@@ -478,8 +513,11 @@ public class Matrix implements Serializable {
 	 * Perform Dynamic operation on Matrix for Sigmoid
 	 * @param M
 	 */
-	public static void DSigmoid(Matrix M) {
-		for(int i=0; i<M.GetRows();i+=1) {
+	public static void DSigmoid(Matrix M,boolean Biased) {
+		
+		int Rows = Biased? M.GetRows()-1:M.GetRows();
+		
+		for(int i=0; i<Rows;i+=1) {
 			for(int l=0; l<M.GetColumns();l+=1) {
 				//Because rows are already sigmoided... just do this formula
 				//M.Entries.get(i).get(0)[l]= (Math.exp(-M.Entries.get(i).get(0)[l])) / Math.pow( ( 1 + Math.exp(-M.Entries.get(i).get(0)[l])   ) ,2);
@@ -552,8 +590,11 @@ public class Matrix implements Serializable {
 	/**8
 	 * Perform dynamic operations on current matrix for Relu
 	 */
-	public static void DRelu(Matrix M) {
-		for(int i=0;i<M.GetRows();i+=1) {
+	public static void DRelu(Matrix M,boolean Biased) {
+		
+		int Rows = Biased? M.GetRows()-1:M.GetRows();
+		
+		for(int i=0;i<Rows;i+=1) {
 			for(int j=0; j<M.GetColumns();j+=1) {
 				if(M.Entries.get(i).get(0)[j]<=0) {
 					M.Entries.get(i).get(0)[j] = 0.0;
@@ -607,9 +648,11 @@ public class Matrix implements Serializable {
 	 * Derivative of soft max function, easily SM(1-SM)
 	 * @param M
 	 */
-	public static void DSoftMax(Matrix M) {
+	public static void DSoftMax(Matrix M,boolean Biased) {
 		
-		for(int i=0; i<M.GetRows();i+=1) {
+		int Rows = Biased? M.GetRows()-1:M.GetRows();
+		
+		for(int i=0; i<Rows;i+=1) {
 			for(int l=0; l<M.GetColumns();l+=1) {
 				M.Entries.get(i).get(0)[l] = M.Entries.get(i).get(0)[l]*(1-M.Entries.get(i).get(0)[l]);
 			}
@@ -736,35 +779,43 @@ public class Matrix implements Serializable {
 		for(int i=0;i<GetRows();i+=1) {
 			for(int j=0; j<GetColumns();j+=1) {
 				
-				if(j==GetColumns()-1) {
-					Entries.get(i).get(0)[j]=1.0;
-				}
-				else {
+				//if(j==GetColumns()-1) {
+					//Entries.get(i).get(0)[j]=1.0;
+				//}
+				
+				//else {
 				
 					Entries.get(i).get(0)[j]=rand.nextDouble();
 				
-				}
+				//}
 			}
 		}
 	}
 
 	/**
-	 * Get Error
+	 * Get Error, multiply without using bias yet
 	 * @param getWeights
 	 * @param object
 	 * @return
 	 */
 	public static Matrix Error(Matrix Weights, Matrix Error,boolean Normalized) {
 		// TODO Auto-generated method stub
-			Matrix WTE = Matrix.Multiply(Weights.Transpose("WT"),Error,Normalized,"WTXE");
+			
+			//Calculate error, bias appended means nothing!!!
+			Matrix WTE = Matrix.Multiply(Weights.Transpose("WT"),Error,Normalized,true,"WTXE");
+			
+			System.out.println("Multiply Result:\n"+WTE.toString());
+			
 			
 			/*
-			
 			if(Nor) {
 			if(WTE!=null)
 			WTE.Normalize();
 			}
+			*/
 			
+			/*
+			WTE.Bias = Error.Entries.get(Error.GetRows()-1).get(0)[0];
 			*/
 			
 			return WTE;
@@ -775,7 +826,7 @@ public class Matrix implements Serializable {
 	 * @param getError
 	 * @param string
 	 */
-	public void MultiplyAcross(Matrix GetError, String string) {
+	public void MultiplyAcross(Matrix GetError,String string) {
 		
 		if(GetError.Entries.size()==1) {
 			MultiplyAcross(GetError.Entries.get(0).get(0)[0],string);
@@ -783,13 +834,16 @@ public class Matrix implements Serializable {
 		}
 		
 		// TODO Auto-generated method stub
-		if(GetError.GetRows()!=this.GetRows() ||GetError.GetColumns()!=this.GetColumns()) {
+		
+		/*
+		if((GetError.GetRows()!=this.GetRows() ||GetError.GetColumns()!=this.GetColumns())) {
 			System.err.println("Rows Don't match for Multiply Across");
 			return;
 		}
+		*/
 		
-		for(int i=0; i<this.GetRows();i+=1) {
-			for(int j=0; j<this.GetColumns();j+=1)
+		for(int i=0; i<GetError.GetRows()&&i<this.GetRows();i+=1) {
+			for(int j=0; j<GetError.GetColumns()&&j<this.GetColumns();j+=1)
 			Entries.get(i).get(0)[j]*=GetError.Entries.get(i).get(0)[j];
 		}
 		this.Name = string;
@@ -807,6 +861,161 @@ public class Matrix implements Serializable {
 			Entries.get(i).get(0)[j]*=LearningRate;
 		}
 		this.Name=string;
+	}
+
+	public Double Sum() {
+		// TODO Auto-generated method stub
+		Double d = 0.0;
+		
+		//Iterate all of array, return sum of all entries
+		for(int i=0; i<this.GetRows();i+=1) {
+			for(int j=0; j<this.GetColumns();j+=1) {
+				d+=this.Entries.get(i).get(0)[j];
+			}
+		}
+		
+		return d;
+	}
+
+	/**
+	 * Adds Bias to entire matrix
+	 * @param getActivation
+	 * @param d
+	 */
+	public static void AddBias(Matrix M, double d) {
+		// TODO Auto-generated method stub
+		for(int i=0; i<M.GetRows();i+=1) {
+			for(int j=0; j<M.GetColumns();j+=1) {
+				M.Entries.get(i).get(0)[j]+=d;
+			}
+		}
+	}
+
+	/**
+	 * Collect all biases for all columns of weights, initialized to 1
+	 * @param weights
+	 * @param biases
+	 */
+	public static void CollectBiases(Matrix W, ArrayList<double[]> Biases,int WIdx) {
+		// TODO Auto-generated method stub
+		
+		double[] D = new double[W.GetRows()];
+		
+		for(int i=0; i<W.GetRows();i+=1) {
+			for(int j=W.GetColumns()-1; j<W.GetColumns();j+=1) {
+				//Append all TRUE biases from weight
+				//Biases.get(WIdx)[j] = (W.Entries.get(i).get(0)[j]);
+				D[i] = (W.Entries.get(i).get(0)[j]);
+			}
+		}
+		Biases.set(WIdx, D);
+	}
+
+	/**
+	 * Important function to collect all un calculated biases from W*A
+	 * @param getWeights
+	 * @param getActivation
+	 * @param biases
+	 */
+	public static void CollectMultipliedBiases(Layer L,Matrix W, Matrix A) {
+		
+		L.Biases=null;
+		L.Biases = new ArrayList<Double>();
+		
+		// TODO Auto-generated method stub
+		double sum = 0.0;
+		//double[] D = new double[W.GetRows()];
+		for(int i=0; i<W.GetRows();i+=1) {
+			for(int j=0; j<A.GetColumns();j+=1) {
+				sum = 0.0;
+				
+				for(int l=W.GetColumns()-1; l<W.GetColumns();l+=1) {
+					
+					sum+=W.Entries.get(i).get(0)[l]*A.Entries.get(l).get(0)[j];
+					
+				}		
+				//D[i] = sum;
+				L.Biases.add(sum);
+			}
+		}
+	}
+
+	public static void Sigmoid(ArrayList<Double> B) {
+		// TODO Auto-generated method stub
+		for(int i=0;i<B.size();i+=1) {
+		
+				B.set(i, 1/(1+Math.exp(-B.get(i))));
+			
+		}
+		
+	}
+
+	public static void Relu(ArrayList<Double> B) {
+		// TODO Auto-generated method stub
+		for(int i=0; i<B.size();i+=1) {
+			if(B.get(i)<=0) {
+				B.set(i, 0.0);
+			}
+		}
+		
+	}
+
+	public static void SoftMax(ArrayList<Double> B) {
+		// TODO Auto-generated method stub
+		//Ensures no double function
+				double[][] ActualM = new double[B.size()][1];
+				
+				double sum;
+				for(int i=0; i<B.size();i+=1) {
+					//for(int l=0; l<M.GetColumns();l+=1) {
+						
+					sum = 0.0;
+					for(int j=0; j<B.size();j+=1) {
+							sum+=Math.exp(B.get(j));
+					}
+					if(sum==0.0) {
+						sum=1.0;
+					}
+					ActualM[i][0] = Math.exp(B.get(i))/sum;
+					
+					//}
+				}
+				
+				//Store actual matrix values
+				for(int i=0; i<B.size();i+=1) {
+					B.set(i,ActualM[i][0]);
+				}
+	}
+
+	/**
+	 * Collect error biases to keep track of biases
+	 * operated on
+	 * remember if they will be normalized, as noted there,
+	 * then just normalize the biases...
+	 * @param layer
+	 * @param WT
+	 * @param E
+	 * @param normalized
+	 */
+	public static void CollectErrorBiases(Layer L, Matrix W, Matrix A, boolean normalized) {
+		// TODO Auto-generated method stub
+		
+		//double sum = 0.0;
+		
+		for(int i=W.GetRows()-1; i<W.GetRows();i+=1) {
+			for(int j=0; j<A.GetColumns();j+=1) {
+				//Only Accept final row...
+				//Collect the individual biases by number of columns
+				for(int l=0; l<W.GetColumns();l+=1) {
+			
+					L.Biases.set(l, W.Entries.get(i).get(0)[l]*A.Entries.get(l).get(0)[j]);
+			
+				}
+
+			}
+		
+		}
+	
 	}
 	
 }

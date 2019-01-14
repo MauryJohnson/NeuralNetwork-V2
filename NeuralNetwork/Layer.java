@@ -1,5 +1,6 @@
 package NeuralNetwork;
 import java.io.Serializable;
+import java.util.ArrayList;
 
 import Matrix.Matrix;
 
@@ -36,6 +37,11 @@ public class Layer implements Serializable {
 	private Matrix Error;
 	
 	/**
+	 * Contains all biases from Weight Matrix!!!!
+	 */
+	public ArrayList<Double> Biases = new ArrayList<Double>();
+	
+	/**
 	 * Type of Layer Indication
 	 */
 	char Type;
@@ -55,7 +61,7 @@ public class Layer implements Serializable {
 	/**
 	 * Bias to keep track of
 	 */
-	private double Bias = 1.0;
+	//private double Bias = 1.0;
 	
 	/**
 	 * When creating a new layer, can only have weight matrices then Input
@@ -89,12 +95,14 @@ public class Layer implements Serializable {
 		this.ActivationFunction=ActivationType;
 	}
 	
+	/*
 	public void SetBias(double B) {
 		this.Bias = B;
 	}
 	public double GetBias() {
 		return this.Bias;
 	}
+	*/
 	
 	/**
 	 * Set activation, typically done during training
@@ -158,8 +166,8 @@ public class Layer implements Serializable {
 	(GradientWeights!=null? GradientWeights+"":"")+
 	"\n ACTIVATION \n"+
 	(Activation!=null? (Activation.toString()+GetActivationType()):"")+
-	"\n BIAS \n" +
-	this.Bias    +
+	"\n BIASES FOR WTXE \n" +
+	this.Biases +
 	" \n ERROR \n"+
 	(Error!=null? Error.toString():"");
 	}
@@ -209,6 +217,39 @@ public class Layer implements Serializable {
 			default:
 				return;
 		}
+	}
+
+	/**
+	 * Activate all biases of current layer
+	 */
+	public void ActivateB() {
+		// TODO Auto-generated method stub
+		switch(this.ActivationFunction) {
+		case 1:
+			Matrix.Sigmoid(Biases);
+			break;
+		case 2:
+			Matrix.Relu(Biases);
+			break;
+		case 3:
+			Matrix.SoftMax(Biases);
+			break;
+		default:
+			return;
+	}
+	}
+	
+	/**
+	 * Sum up all biases of current layer
+	 * @return
+	 */
+	public double BSum() {
+		// TODO Auto-generated method stub
+		double d = 0.0;
+		for(int i=0; i<Biases.size();i+=1)
+			d+=Biases.get(i);
+		return d;
+		
 	}
 	
 }
