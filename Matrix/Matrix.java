@@ -46,11 +46,6 @@ public class Matrix implements Serializable {
 	public String Name = "";
 	
 	/**
-	 * Bias of matrix of multiplication, set to final parameter of second matrix
-	 */
-	//public Double Bias = Double.MIN_VALUE;
-	
-	/**
 	 * Create a new Matrix
 	 * @param Entries
 	 */
@@ -177,11 +172,6 @@ public class Matrix implements Serializable {
 		}
 		
 		Matrix M3 = new Matrix(Matrix.NewDoubleMatrix(AllSums),Name);
-		
-		/*
-		if(M2.GetColumns()==1)
-		M3.Bias = M2.Entries.get(M2.GetRows()-1).get(0)[0];
-		*/
 		
 		return M3;	
 	}
@@ -324,11 +314,13 @@ public class Matrix implements Serializable {
 			}
 			
 		        }
+		    
 		     System.out.println("\n MATRIX NOW:\n");
 		     	System.out.println(Matrix);
 		     
 		     System.out.println("\n EEEMATRIX NOW:\n");
 		        System.out.println(EMatrix);
+		    
 		    }
 		
 		}

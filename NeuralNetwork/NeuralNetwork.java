@@ -129,14 +129,6 @@ public class NeuralNetwork implements Serializable{
 		
 		this.Normalized = this.Scanner.nextInt()>0? true:false;
 		
-		/*
-		this.Layers.add(new Layer(
-				new Matrix(Matrix.NewDoubleMatrix(
-						//+1 is for bias
-				new double[Layers][0]),"Input")
-				,0,0));
-		*/
-		
 		//Iterate through all layers, prompt user for layer sizes (Future versions would learn the right sizes)
 		for(int i=0; i<Layers;i+=1) {
 			if(i==0) {
@@ -191,10 +183,6 @@ public class NeuralNetwork implements Serializable{
 						Weights
 						,1,ActivationFunction)));
 				
-				//Add biases ONLY for initialized, only used at end for error shown and then gradient
-				//if(this.Biases.size()!=this.Layers.size()-1)
-				//this.Biases.add(1.0);
-				//Matrix.CollectBiases(Weights,this.Biases,i-1);
 			}
 			else if(i==0) {
 				Matrix Input = new Matrix(
@@ -249,9 +237,6 @@ public class NeuralNetwork implements Serializable{
 							Weights
 							,1,1)));
 					
-					//if(this.Biases.size()!=this.Layers.size()-1)
-					//this.Biases.add(1.0);
-					//Matrix.CollectBiases(Weights,this.Biases,i-1);
 				}
 				else if(i==0) {
 					Matrix Input = new Matrix(
@@ -429,25 +414,6 @@ public class NeuralNetwork implements Serializable{
 		N.Layers.get(N.Layers.size()-1).SetError(FirstError);
 		
 		for(int i = N.Layers.size()-1;i>1;i-=1) {
-		
-			//if(i!=N.Layers.size()-1) {
-			//Error of current layer
-			
-			/*
-			Matrix BE = null;
-			//if(i==1) {
-				BE = Matrix.CopyMatrix(i==N.Layers.size()-1? FirstError:N.Layers.get(i+1).GetError(), "BE COPY");
-			
-				if(i!=N.Layers.size()-1) {
-				BE.Entries.add(Matrix.NewDoubleList(
-						new double[] {
-								N.Layers.get(i).BSum()
-						}
-				));
-				}
-			*/
-			//}
-		
 			
 			//Append to weight matrix 1's
 			
@@ -619,72 +585,6 @@ public class NeuralNetwork implements Serializable{
 
 		N.Scanner.close();
 	}
-	
-	/**
-	 * Append 1.0's to end of all weights
-	 
-	private void AddBiases() {
-		
-		for(int i=1; i<this.Layers.size();i+=1) {
-			for(int j=0; j<this.Layers.get(i).GetWeights().Entries.size();j+=1){
-				
-				double[] App = new double[this.Layers.get(i).GetWeights().Entries.get(j).get(0).length+1];
-				int k=0;
-				for(k=0; k<this.Layers.get(i).GetWeights().Entries.get(j).get(0).length;k+=1) {
-					App[k] = this.Layers.get(i).GetWeights().Entries.get(j).get(0)[k];
-				}
-				
-				App[k]=1.0;
-				
-				this.Layers.get(i).GetWeights().Entries.get(j).remove(0);
-				this.Layers.get(i).GetWeights().Entries.get(j).add(App);
-				
-			}
-			
-		}
-		
-		
-	}
-	*/
-	
-	/**
-	 * Strip all biases in order to have correct gradients, biases are already factored in!
-	 * Also strip all weights appended with 1.0, because bias is no longer there
-	 
-	private void StripBiases() {
-		// TODO Auto-generated method stub
-		for(int i=0; i<this.Layers.size();i+=1) {
-			
-			if(i<this.Layers.size()-1) {
-			//Remove Bias
-			
-			}
-			
-			
-			if(i>0) {
-			int Columns = this.Layers.get(i).GetWeights().GetColumns()-1;
-			this.Layers.get(i).GetWeights().Name="";
-			//Remove bias mults
-			for(int j=0; j<this.Layers.get(i).GetWeights().Entries.size();j+=1) {
-				
-				double [] Strp = new double [Columns];
-				
-				for(int l=0; l<Columns;l+=1) {
-				
-					Strp[l]=this.Layers.get(i).GetWeights().Entries.get(j).get(0)[l];
-				
-				}
-				
-				this.Layers.get(i).GetWeights().Entries.get(j).remove(0);
-				this.Layers.get(i).GetWeights().Entries.get(j).add(Strp);
-			}
-			
-			}
-			
-		}
-		
-	}
-	 */
 	
 	/**
 	 * Learn by adjusting all weights by the gradient weights -> W=W+GW
