@@ -31,15 +31,15 @@ public class MatrixFileStream {
 	this.Delimiter=Delimiter;
 	}
 
-	public static MatrixFileStream ReadFile(MatrixFileStream MFS1, char Delimiter) {
-		if(MFS1.F==null) {
+	public MatrixFileStream ReadFile(char Delimiter) {
+		if(this.F==null) {
 			System.out.println("Unable to open file");
 			System.exit(-4);
 		}
-		FileInputStream F = MFS1.F;
+		FileInputStream F = this.F;
 		
-		int COLUMNS = GetColumns(F);
-		int ROWS = GetRows(F,Delimiter);
+		int COLUMNS = this.GetColumns();
+		int ROWS = this.GetRows(Delimiter);
 		int Columns = 0;
 		int Rows = 0;
 		
@@ -55,7 +55,7 @@ public class MatrixFileStream {
 		double[]R;
 		
 		while(true) {
-			R = NextDouble(F,Delimiter);
+			R = this.NextDouble(Delimiter);
 		
 			if(R[0]==2||R[0]==1) {
 				
@@ -100,14 +100,14 @@ public class MatrixFileStream {
 		
 		Matrix MNew = new Matrix(Matrix.NewDoubleMatrix(Entries),"Read M");
 		
-		MFS1.M=MNew;
+		this.M=MNew;
 		
-		return MFS1;
+		return this;
 	}
 	
-	private static double[] NextDouble(FileInputStream F, char Delimiter) {
+	private double[] NextDouble(char Delimiter) {
 		// TODO Auto-generated method stub
-	
+		FileInputStream F = this.F;
 		boolean Dot=false;
 		
 		double[] R = new double[2];
@@ -157,7 +157,8 @@ public class MatrixFileStream {
 		return R;
 	}
 
-	public static int GetColumns(FileInputStream F) {
+	public int GetColumns() {
+		FileInputStream F = this.F;
 		FileChannel fc = F.getChannel();
 		long PrevPosition = 0;
 		try {
@@ -230,7 +231,8 @@ public class MatrixFileStream {
 		return C;
 	}
 	
-	public static int GetRows(FileInputStream F,char Delimiter) {
+	public int GetRows(char Delimiter) {
+		FileInputStream F = this.F;
 		FileChannel fc = F.getChannel();
 		long PrevPosition = 0;
 		try {
@@ -282,11 +284,14 @@ public class MatrixFileStream {
 	public static void main(String[] args) {
 		MatrixFileStream MFS1 = null;
 		try {
-			MFS1 = new MatrixFileStream(new FileInputStream("/Model/Model1"),'_');
+			MFS1 = new MatrixFileStream(new FileInputStream("./Model/Model1"),'_');
 		} catch (FileNotFoundException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
+		
+		MFS1.ReadFile('_');
+	System.out.println(MFS1.M);
 		
 	}
 	
