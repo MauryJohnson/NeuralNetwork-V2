@@ -17,6 +17,6 @@
 	<classpathentry kind="lib" path="C:/Users/User/ML/NeuralNetwork-V2/lib/orsonpdf-1.6-eval.jar"/>
 	<classpathentry kind="lib" path="C:/Users/User/ML/NeuralNetwork-V2/lib/servlet.jar"/>
 	<classpathentry kind="lib" path="C:/Users/User/ML/NeuralNetwork-V2/lib/swtgraphics2d.jar"/>
-	<classpathentry exported="true" kind="lib" path="C:/Users/User/ML/NeuralNetwork-V2/guava.jar"/>
+	<classpathentry kind="lib" path="C:/Users/User/ML/NeuralNetwork-V2/lib/guava.jar"/>
 	<classpathentry kind="output" path=""/>
 </classpath>
