@@ -1020,7 +1020,7 @@ public class Matrix implements Serializable {
 		for(i=0;i<this.GetRows();i+=1) {
 			for(j=0;j<this.GetColumns();j+=1) {
 				try {
-					out.write(this.Entries.get(i).get(0)[j]+" ");
+					out.write(String.format("%.7f ",this.Entries.get(i).get(0)[j]));
 				} catch (IOException e) {
 					// TODO Auto-generated catch block
 					e.printStackTrace();

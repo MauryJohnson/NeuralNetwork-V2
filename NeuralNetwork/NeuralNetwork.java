@@ -625,7 +625,10 @@ public class NeuralNetwork implements Serializable{
 		//Test input layer for neural network
 		
 		
-		NeuralNetwork NN = NNFileStream.ParseLayers("./Model/Model1", '_');
+		NeuralNetwork NN = NNFileStream.ParseLayers("./Model/Model2", '_');
+		
+		
+		
 		
 		NN.SaveNetwork();
 		

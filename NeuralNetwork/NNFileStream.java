@@ -121,14 +121,19 @@ public class NNFileStream extends MatrixFileStream{
 			if(brk)
 			break;
 		//str = NFS.NextString();
-		k=0;
+		//k=0;
 		System.out.println("Activation:"+str);
+		
+		if(str.charAt(0)=='O') {
+			str = NFS.NextString();
+		}
 		
 		NFS.ReadFile();
 		
 		Matrix B = NFS.M;
 		
 		str2 = "";
+		k=0;
 		while(k<str.length()) {
 			if(Character.isDigit(str.charAt(k))) {
 				str2+=str.charAt(k);
