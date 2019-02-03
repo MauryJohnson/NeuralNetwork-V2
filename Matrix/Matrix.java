@@ -1,5 +1,7 @@
 package Matrix;
 
+import java.io.BufferedWriter;
+import java.io.IOException;
 import java.io.Serializable;
 
 import java.util.ArrayList;
@@ -1008,6 +1010,32 @@ public class Matrix implements Serializable {
 		
 		}
 	
+	}
+
+	public void SaveMatrix(BufferedWriter out) {
+		// TODO Auto-generated method stub
+		int i=0;
+		int j=0;
+		
+		for(i=0;i<this.GetRows();i+=1) {
+			for(j=0;j<this.GetColumns();j+=1) {
+				try {
+					out.write(this.Entries.get(i).get(0)[j]+" ");
+				} catch (IOException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+					System.exit(-2);
+				}
+				
+			}
+			try {
+				out.write("\n");
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+				System.exit(-2);
+			}
+		}
 	}
 	
 }

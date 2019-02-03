@@ -14,17 +14,17 @@ import Matrix.Matrix;
 
 public class MatrixFileStream {
 
-	char Delimiter;
+	public char Delimiter;
 	
-	FileInputStream F;
+	public FileInputStream F;
 	
-	String result = "";
+	public String result = "";
 	
-	int Position = 0;
+	public int Position = 0;
 	
 	FileChannel FC;
 	
-	Matrix M;
+	public Matrix M;
 	
 	//To rewind, use FileChannel fx = F.getChannel();
 	//fx.position(x)
@@ -166,6 +166,7 @@ public class MatrixFileStream {
 		// TODO Auto-generated method stub
 		FileInputStream F = this.F;
 		boolean Dot=false;
+		boolean Neg=false;
 		
 		double[] R = new double[2];
 		R[1]=-88888888;
@@ -191,10 +192,19 @@ public class MatrixFileStream {
 					app+=c;
 					Dot=true;
 				}
+				else if(c=='-') {
+					if(Neg) {
+						System.err.println("Double negatives");
+						System.exit(-3);
+					}
+					Neg=true;
+				}
 				else if(c==Delimiter) {
 					System.out.println(c + "1==" +Delimiter);
 					try {
 						R[1] = Double.parseDouble(app);
+						if(Neg)
+							R[1]*=-1;
 						}
 						catch(Exception e){
 						R[1]=-88888888;
@@ -207,6 +217,8 @@ public class MatrixFileStream {
 					System.out.println(c + "2==" +Delimiter);
 					try {
 					R[1] = Double.parseDouble(app);
+					if(Neg)
+						R[1]*=-1;
 					}
 					catch(Exception e){
 					R[1]=-88888888;
@@ -226,6 +238,8 @@ public class MatrixFileStream {
 		R[0]=2;
 		try {
 			R[1] = Double.parseDouble(app);
+			if(Neg)
+				R[1]*=-1;
 			}
 			catch(Exception e){
 			R[1]=-999999999;
@@ -234,6 +248,36 @@ public class MatrixFileStream {
 		//result=null;
 		this.Position=i;
 		return R;
+	}
+	
+
+	public String NextString() {
+		String app = "";
+		int i = this.Position;
+		char c;
+		
+		while(i<this.result.length()) {
+			c = result.charAt(i);
+			if(c==this.Delimiter) {
+				boolean NL = false;
+				while(i<this.result.length()) {
+					if(result.charAt(i)=='\n') {
+						NL=true;
+						break;
+					}
+					i+=1;
+				}
+				if(NL)
+				this.Position=i+1;
+				break;
+			}
+			app+=c;
+			i+=1;
+		}
+		
+		System.out.println("Next String:"+app);
+		
+		return app;
 	}
 
 	public int GetColumns() {

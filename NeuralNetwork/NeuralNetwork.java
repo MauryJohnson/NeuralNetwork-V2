@@ -1,6 +1,15 @@
 package NeuralNetwork;
 
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.OutputStreamWriter;
 import java.io.Serializable;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Locale;
 import java.util.Scanner;
@@ -33,6 +42,8 @@ public class NeuralNetwork implements Serializable{
 	 */
 	private Scanner Scanner = new Scanner(System.in);
 	
+	public String Name = "";
+	
 	/**
 	 * Used to determine type of error to evaluate
 	 * 0 - Basic 1-Cross Entropy,...
@@ -63,6 +74,8 @@ public class NeuralNetwork implements Serializable{
 	 * ArrayList of Maps to Graph using Charts
 	 */
 	private ArrayList<HMap> HMaps = new ArrayList<HMap>();
+
+	public char Delimiter;
 	
 	/**
 	 * Plain Neural Network
@@ -100,7 +113,7 @@ public class NeuralNetwork implements Serializable{
 	 */
 	public String toString() {
 		System.out.println("Network SIZE:"+Layers.size());
-		return Layers.toString();
+		return this.Name+"\n"+Layers.toString();
 	}
 	
 	/**
@@ -611,6 +624,11 @@ public class NeuralNetwork implements Serializable{
 	public static void main(String[] args) {
 		//Test input layer for neural network
 		
+		
+		NeuralNetwork NN = NNFileStream.ParseLayers("./Model/Model1", '_');
+		
+		NN.SaveNetwork();
+		
 		/*Matrix Input = new Matrix(
 				Matrix.NewDoubleMatrix(
 						new double[][]
@@ -627,6 +645,7 @@ public class NeuralNetwork implements Serializable{
 		Layer InputLayer = new Layer(Input,0,0);
 		*/
 		
+		/*
 		NeuralNetwork NN = new NeuralNetwork();
 		NN.CreateNeuralNetwork(null);
 
@@ -699,7 +718,153 @@ public class NeuralNetwork implements Serializable{
 		LineChart.CreateChart(new String[] {"IN vs OUT","Function","IN vs OUT","Iteration","Output"}, NN.HMaps.get(1));
 		//Create gradient value vs iteration
 		LineChart.CreateChart(new String[] {"Gradient","Gradient","Gradient vs iteration","Iteration","Gradient"}, NN.HMaps.get(2));
+		*/
+	}
+
+	/**
+	 * Store neural network into a model number
+	 */
+	public void SaveNetwork() {
+		// TODO Auto-generated method stub
+		char Delim = this.Delimiter;
 		
+		Scanner sc = new Scanner(System.in);
+		
+		//boolean Quit=false;
+		boolean Write=false;
+		int i=0;
+		//int intSize=0;
+		String Model = "Model";
+		//boolean Neg = false;
+		
+		//do {
+		Write=false;
+		//Neg=false;
+		System.out.println("Enter Model#:");
+		i = sc.nextInt();
+		
+			Model+=i;
+			File F = new File("./Model/"+Model);
+			if(F.exists()) {
+				System.out.println("File exists... Overwrite >0 Yes <=0 NO");
+				i = sc.nextInt();
+				if(i>0) {
+					Write=true;
+				}
+			}
+			else {
+				Write=true;
+			}
+		
+		//String Act = "";
+		
+		//NNFileStream NFS;
+		
+		if(Write) {
+			//File F = new File("./Model/"+Model);
+			System.out.println("Write to File:"+Model);
+			F.delete();
+			try {
+				F.createNewFile();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+				System.exit(-1);
+			}
+			
+			F.setWritable(true);
+			
+			/*
+			try {
+				NFS = new NNFileStream(new FileInputStream(F),Delim);
+			} catch (FileNotFoundException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+				System.exit(-1);
+			}
+			*/
+			BufferedWriter out=null;
+			try {
+				out = new BufferedWriter(new OutputStreamWriter( new FileOutputStream(F.getAbsolutePath()), StandardCharsets.UTF_8 ));
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+				System.exit(-2);
+			}
+			try {
+				
+			out.write(Model+Delim);
+			out.newLine();
+			//System.out.println("This error:"+this.Error);
+			out.write(this.Error+""+Delim+"\n");
+			//out.newLine();
+			out.write((this.Normalized? "1":"0")+Delim+"\n");
+			//out.newLine();
+			
+			/*
+			System.out.println("Write 1:"+Model+Delim+"\n"+
+			this.Error+Delim+"\n"
+			+(this.Normalized? "1":"0")+Delim+"\n");
+			*/
+			
+			out.write("I"+Delim+"\n"
+			+"A"+this.Layers.get(0).ActivationFunction+Delim+"\n");
+			
+			this.Layers.get(0).GetActivation().SaveMatrix(out);
+			
+			out.write(Delim+"\n");
+			
+			i=1;
+			while(i<this.Layers.size()) {
+				if(i==this.Layers.size()-1) {
+					out.write("O");
+				}
+				else {
+					out.write("H");
+				}
+				
+				out.write(Delim+"\n");
+				
+				out.write("A"+this.Layers.get(i).ActivationFunction+Delim+"\n");
+				
+				this.Layers.get(i).GetActivation().SaveMatrix(out);
+				
+				out.write(Delim+"\n");
+				
+				out.write("W"+Delim+"\n");
+				
+				this.Layers.get(i).GetWeights().SaveMatrix(out);
+				
+				out.write(Delim+"\n");
+				
+				out.write("E"+Delim+"\n");
+				
+				this.Layers.get(i).GetError().SaveMatrix(out);
+				
+				out.write(Delim+"\n");
+				
+				out.write("GW"+Delim+"\n");
+				
+				this.Layers.get(i).GetGradientWeights().SaveMatrix(out);
+				
+				out.write(Delim+"\n");
+				
+				i+=1;
+			}
+			
+			out.flush();
+			
+			out.close();
+			
+			}
+			catch(Exception e) {
+				e.printStackTrace();
+				System.exit(-2);
+			}
+		}
+		
+		sc.close();
+
 	}
 	
 }
